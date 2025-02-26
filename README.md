@@ -1,5 +1,14 @@
-# Typesense-dotnet
+# Generate nuget file
+Run this command from your typesense-dotnet folder: 
 
+dotnet pack -c Release -p:PackageVersion=7.27.1
+
+# Install nuget file
+Run this command to install:
+
+dotnet add package Typesense --version 7.27.1 --source "/home/brian/dp/typesensedotnet/src/Typesense/bin/Release/"
+ 
+# Typesense-dotnet
 .net client for [Typesense.](https://github.com/typesense/typesense)
 
 You can get the NuGet package [here.](https://www.nuget.org/packages/Typesense/)

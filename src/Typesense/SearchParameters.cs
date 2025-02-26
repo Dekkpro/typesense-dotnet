@@ -354,6 +354,14 @@ public record SearchParameters
     /// </summary>
     [JsonPropertyName("max_candidates")]
     public int? MaxCandidates { get; set; }
+    
+    /// <summary>
+    /// Controls the number of similar words that Typesense considers during fuzzy search on filter_by values. 
+    /// Useful for controlling prefix matches like company_name:Acm*.
+    /// Default: 4.
+    /// </summary>
+    [JsonPropertyName("max_filter_by_candidates")]
+    public int? MaxFilterByCandidates { get; set; }
 
     /// <summary>
     /// Whether all variations of prefixes and typo corrections should be considered,
