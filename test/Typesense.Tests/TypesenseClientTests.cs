@@ -2,6 +2,7 @@ using FluentAssertions;
 using FluentAssertions.Execution;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -80,7 +81,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
                 new Field(
                     "num_employees",
@@ -92,7 +94,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
                 new Field(
                     name: "location",
@@ -104,7 +107,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
             },
             "num_employees",
@@ -152,7 +156,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
                 new Field(
                     name: "num_employees",
@@ -164,7 +169,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
                 new Field(
                     name: "location",
@@ -176,7 +182,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
             },
             "num_employees",
@@ -231,7 +238,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
             },
             "",
@@ -280,7 +288,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "zh")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
             },
             "",
@@ -311,6 +320,96 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
         await _client.DeleteCollection(collectionName);
     }
 
+    // We test metadata individually,
+    // because we don't want to impact tests that depend on shared collection/schema.
+    [Fact, TestPriority(1)]
+    public async Task Create_schema_with_metadata_and_reference()
+    {
+        const string collectionName = "collection-with-metadata";
+
+        var expected = new CollectionResponse(
+            collectionName,
+            0,
+            new List<Field>
+            {
+                new Field(
+                    name: "name",
+                    type: FieldType.String,
+                    facet: false,
+                    optional: false,
+                    index: true,
+                    sort: false,
+                    infix: false,
+                    locale: "")
+                {
+                    Stem = false,
+                    Store = true
+                },
+                new Field(
+                    name: "company_name",
+                    type: FieldType.String,
+                    facet: false,
+                    optional: false,
+                    index: true,
+                    sort: false,
+                    infix: false,
+                    locale: "")
+                {
+                    Stem = false,
+                    Store = true,
+                    Reference = "companies.company_name",
+                    AsyncReference = true
+                },
+            },
+            "",
+            new List<string>(),
+            new List<string>(),
+            false,
+            new Dictionary<string, object>
+            {
+                ["version"] = JsonSerializer.SerializeToElement(1.2f),
+                ["null"] = null
+            });
+
+        var schema = new Schema(
+            collectionName,
+            new List<Field>
+            {
+                new Field(
+                    "name",
+                    FieldType.String),
+                new Field(
+                    "company_name",
+                    FieldType.String)
+                {
+                    Reference = "companies.company_name",
+                    AsyncReference = true
+                }
+            })
+        {
+            Metadata = new Dictionary<string, object>
+            {
+                ["version"] = 1.2f,
+                ["null"] = null
+            }
+        };
+
+        var response = await _client.CreateCollection(schema);
+
+        // CreatedAt cannot be deterministic
+        response.CreatedAt.Should().NotBe(default);
+        expected = expected with { CreatedAt = response.CreatedAt };
+
+        response.Should().BeEquivalentTo(expected, options => options.Excluding(response => response.Metadata));
+
+        // FluentAssertions doesn't support JsonElements, so we need to check it separately.
+        response.Metadata.Should().NotBeEmpty();
+        response.Metadata["version"].As<JsonElement>().GetSingle().Should().Be(1.2f);
+
+        // Cleanup
+        await _client.DeleteCollection(collectionName);
+    }
+
     [Fact, TestPriority(1)]
     public async Task Retrieve_collection()
     {
@@ -329,7 +428,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
                 new Field(
                     name: "num_employees",
@@ -341,7 +441,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
                 new Field(
                     "location",
@@ -353,7 +454,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
             },
             "num_employees",
@@ -390,7 +492,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                         infix: false,
                         locale: "")
                     {
-                        Stem = false
+                        Stem = false,
+                        Store = true
                     },
                     new Field(
                         name: "num_employees",
@@ -402,7 +505,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                         infix: false,
                         locale: "")
                     {
-                        Stem = false
+                        Stem = false,
+                        Store = true
                     },
                     new Field(
                         name: "location",
@@ -414,7 +518,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                         infix: false,
                         locale: "")
                     {
-                        Stem = false
+                        Stem = false,
+                        Store = true
                     }
                 },
                 "num_employees",
@@ -470,7 +575,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
                 new Field(
                     name: "location",
@@ -482,7 +588,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
                 new Field(
                     name: "non_profit",
@@ -494,7 +601,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
             },
             "num_employees",
@@ -529,7 +637,7 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
         };
 
         _ = await _client.CreateCollection(schema);
-        
+
         var expected = new CollectionResponse(
             collectionName,
             0,
@@ -545,7 +653,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
                 new Field(
                     name: "location",
@@ -557,7 +666,9 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
+
                 },
                 new Field(
                     name: "non_profit",
@@ -569,7 +680,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     infix: false,
                     locale: "")
                 {
-                    Stem = false
+                    Stem = false,
+                    Store = true
                 },
             },
             "num_employees",
@@ -703,6 +815,67 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
         }
         response = await _client.ImportDocuments("companies", string.Join('\n', companyLines), 40, ImportType.Create);
         response.Should().BeEquivalentTo(expected);
+        foreach (var documentId in companies.Select(c => c.Id))
+        {
+            await _client.DeleteDocument<Company>("companies", documentId);
+        }
+    }
+
+    [Fact, TestPriority(7)]
+    public async Task Import_documents_create_stream()
+    {
+        var expected = new List<ImportResponse>
+        {
+            new ImportResponse(true),
+            new ImportResponse(true),
+        };
+
+        var companies = new List<Company>
+        {
+            new Company
+            {
+                Id = "125",
+                CompanyName = "Future Technology",
+                NumEmployees = 1232,
+                Location = new Location
+                {
+                    City = "Aarhus",
+                    Country = "DK"
+                },
+            },
+            new Company
+            {
+                Id = "126",
+                CompanyName = "Random Corp.",
+                NumEmployees = 531,
+                Location = new Location
+                {
+                    City = "Copenhagen",
+                    Country = "DK"
+                },
+            }
+        };
+
+        var companyLines = JsonLines(companies).ToList();
+
+        using var memoryStream = new MemoryStream();
+        await using (var writer = new StreamWriter(memoryStream))
+        {
+            foreach (var line in companyLines)
+            {
+                await writer.WriteLineAsync(line);
+            }
+            await writer.FlushAsync();
+            memoryStream.Position = 0;
+
+            var response = await _client.ImportDocuments("companies", memoryStream, 40, ImportType.Create);
+            response.Should().BeEquivalentTo(expected);
+        }
+
+        foreach (var documentId in companies.Select(c => c.Id))
+        {
+            await _client.DeleteDocument<Company>("companies", documentId);
+        }
     }
 
     [Fact, TestPriority(7)]
@@ -750,6 +923,58 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
 
         response = await _client.ImportDocuments("companies", string.Join('\n', companyLines), 40, ImportType.Update);
         response.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact, TestPriority(7)]
+    public async Task Import_documents_update_stream()
+    {
+        var expected = new List<ImportResponse>
+        {
+            new ImportResponse(true),
+            new ImportResponse(true),
+        };
+
+        var companies = new List<Company>
+        {
+            new Company
+            {
+                Id = "125",
+                CompanyName = "Future Technology",
+                NumEmployees = 1233,
+                Location = new Location
+                {
+                    City = "Aarhus",
+                    Country = "DK"
+                },
+            },
+            new Company
+            {
+                Id = "126",
+                CompanyName = "Random Corp.",
+                NumEmployees = 532,
+                Location = new Location
+                {
+                    City = "Copenhagen",
+                    Country = "DK"
+                },
+            }
+        };
+
+        var companyLines = JsonLines(companies).ToList();
+
+        using var memoryStream = new MemoryStream();
+        await using (var writer = new StreamWriter(memoryStream))
+        {
+            foreach (var line in companyLines)
+            {
+                await writer.WriteLineAsync(line);
+            }
+            await writer.FlushAsync();
+            memoryStream.Position = 0;
+
+            var response = await _client.ImportDocuments("companies", memoryStream, 40, ImportType.Update);
+            response.Should().BeEquivalentTo(expected);
+        }
     }
 
     [Fact, TestPriority(7)]
@@ -801,6 +1026,58 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
     }
 
     [Fact, TestPriority(7)]
+    public async Task Import_documents_upsert_stream()
+    {
+        var expected = new List<ImportResponse>
+        {
+            new ImportResponse(true),
+            new ImportResponse(true),
+        };
+
+        var companies = new List<Company>
+        {
+            new Company
+            {
+                Id = "125",
+                CompanyName = "Future Technology",
+                NumEmployees = 1232,
+                Location = new Location
+                {
+                    City = "Aarhus",
+                    Country = "DK"
+                },
+            },
+            new Company
+            {
+                Id = "126",
+                CompanyName = "Random Corp.",
+                NumEmployees = 531,
+                Location = new Location
+                {
+                    City = "Copenhagen",
+                    Country = "DK"
+                },
+            }
+        };
+
+        var companyLines = JsonLines(companies).ToList();
+
+        using var memoryStream = new MemoryStream();
+        await using (var writer = new StreamWriter(memoryStream))
+        {
+            foreach (var line in companyLines)
+            {
+                await writer.WriteLineAsync(line);
+            }
+            await writer.FlushAsync();
+            memoryStream.Position = 0;
+
+            var response = await _client.ImportDocuments("companies", memoryStream, 40, ImportType.Upsert);
+            response.Should().BeEquivalentTo(expected);
+        }
+    }
+
+    [Fact, TestPriority(7)]
     public async Task Import_documents_emplace()
     {
         var expected = new List<ImportResponse>
@@ -847,6 +1124,59 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
         response = await _client.ImportDocuments("companies", string.Join('\n', companyLines), 40, ImportType.Emplace);
         response.Should().BeEquivalentTo(expected);
     }
+
+    [Fact, TestPriority(7)]
+    public async Task Import_documents_emplace_stream()
+    {
+        var expected = new List<ImportResponse>
+        {
+            new ImportResponse(true),
+            new ImportResponse(true),
+        };
+
+        var companies = new List<Company>
+        {
+            new Company
+            {
+                Id = "125",
+                CompanyName = "Future Technology",
+                NumEmployees = 1232,
+                Location = new Location
+                {
+                    City = "Aarhus",
+                    Country = "DK"
+                },
+            },
+            new Company
+            {
+                Id = "126",
+                CompanyName = "Random Corp.",
+                NumEmployees = 531,
+                Location = new Location
+                {
+                    City = "Copenhagen",
+                    Country = "DK"
+                },
+            }
+        };
+
+        var companyLines = JsonLines(companies).ToList();
+
+        using var memoryStream = new MemoryStream();
+        await using (var writer = new StreamWriter(memoryStream))
+        {
+            foreach (var line in companyLines)
+            {
+                await writer.WriteLineAsync(line);
+            }
+            await writer.FlushAsync();
+            memoryStream.Position = 0;
+
+            var response = await _client.ImportDocuments("companies", memoryStream, 40, ImportType.Emplace);
+            response.Should().BeEquivalentTo(expected);
+        }
+    }
+
     private static readonly JsonSerializerOptions JsonOptionsCamelCaseIgnoreWritingNull = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -1637,6 +1967,13 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     new Include("422", 1),
                     new Include("54", 2)
                 },
+            FilterBy = "NOT description:=[pink lady 1]",
+            Metadata = new Dictionary<string, object> { ["apple_color"] = "green" },
+            SortBy = "color:asc",
+            ReplaceQuery = "replacement query",
+            FilterCuratedHits = false,
+            StopProcessing = false,
+            EffectiveFromTs = DateTime.UtcNow,
         };
 
         var response = await _client.UpsertSearchOverride(
@@ -1644,7 +1981,7 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
     }
 
     [Fact, TestPriority(19)]
-    public async Task Retrive_search_override()
+    public async Task Retrieve_search_override()
     {
         var searchOverrides = await _client.ListSearchOverrides("companies");
 
@@ -1652,7 +1989,8 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
 
         var response = await _client.RetrieveSearchOverride("companies", expected.Id);
 
-        response.Should().BeEquivalentTo(expected);
+        // FluentAssertions doesn't support JsonElements
+        response.Should().BeEquivalentTo(expected, options => options.Excluding(x => x.Metadata));
     }
 
     [Fact, TestPriority(20)]
@@ -1666,6 +2004,14 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                     new Include("422", 1),
                     new Include("54", 2)
                 },
+            FilterBy = "NOT description:=[pink lady 1]",
+            Metadata = new Dictionary<string, object> { ["apple_color"] = "green" },
+            SortBy = "color:asc",
+            ReplaceQuery = "replacement query",
+            RemoveMatchedTokens = true,
+            FilterCuratedHits = false,
+            StopProcessing = false,
+            EffectiveFromTs = DateTime.UtcNow,
         };
 
         var response = await _client.ListSearchOverrides("companies");
@@ -1677,8 +2023,22 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
                 {
                     first.Id.Should().Be("customize-apple");
                     first.Includes.Should().BeEquivalentTo(expected.Includes);
+                    first.FilterBy.Should().BeEquivalentTo(expected.FilterBy);
+                    first.SortBy.Should().BeEquivalentTo(expected.SortBy);
+                    first.ReplaceQuery.Should().BeEquivalentTo(expected.ReplaceQuery);
+                    first.RemoveMatchedTokens.Should().BeTrue();
+                    first.FilterCuratedHits.Should().BeFalse();
+                    first.StopProcessing.Should().BeFalse();
+                    first.EffectiveFromTs.Should().HaveYear(DateTime.UtcNow.Year);
+                    first.EffectiveFromTs.Should().HaveMonth(DateTime.UtcNow.Month);
+                    first.EffectiveFromTs.Should().HaveDay(DateTime.UtcNow.Day);
+                    first.EffectiveToTs.Should().BeNull();
                     first.Rule.Should().BeEquivalentTo(expected.Rule);
                 });
+
+        // FluentAssertions doesn't support JsonElements, so we need to check it separately.
+        response.SearchOverrides.FirstOrDefault()?.Metadata?.Should().NotBeEmpty();
+        response.SearchOverrides.FirstOrDefault()?.Metadata["apple_color"].As<JsonElement>().GetString().Should().Be("green");
     }
 
     [Fact, TestPriority(21)]
@@ -2140,6 +2500,13 @@ public class TypesenseClientTests : IClassFixture<TypesenseFixture>
         var response = await _client.UpdateDocuments("companies", document, "num_employees:>100");
 
         response.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact, TestPriority(38)]
+    public async Task Can_truncate_collection()
+    {
+        var response = await _client.TruncateCollection("companies");
+        response.NumDeleted.Should().BeGreaterThan(0);
     }
 
     private async Task CreateCompanyCollection()

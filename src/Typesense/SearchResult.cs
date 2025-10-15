@@ -68,6 +68,9 @@ public record Hit<T>
 
     [JsonPropertyName("geo_distance_meters")]
     public IReadOnlyDictionary<string, double>? GeoDistanceMeters { get; init; }
+    
+    [JsonPropertyName("hybrid_search_info")]
+    public HybridSearchInfo? HybridSearchInfo { get; init; } 
 
     [JsonConstructor]
     public Hit(IReadOnlyList<Highlight> highlights, T document, long? textMatch, double? vectorDistance, IReadOnlyDictionary<string, double>? geoDistanceMeters)
@@ -78,6 +81,12 @@ public record Hit<T>
         VectorDistance = vectorDistance;
         GeoDistanceMeters = geoDistanceMeters;
     }
+}
+
+public record HybridSearchInfo
+{
+    [JsonPropertyName("rank_fusion_score")]
+    public double? RankFusionScore { get; set; }
 }
 
 public record TextMatchInfo
@@ -188,11 +197,18 @@ public record GroupedHit<T>
     [JsonPropertyName("hits")]
     public IReadOnlyList<Hit<T>> Hits { get; init; }
 
+    [JsonPropertyName("found")]
+    public int Found { get; init; }
+
     [JsonConstructor]
-    public GroupedHit(IReadOnlyList<string> groupKey, IReadOnlyList<Hit<T>> hits)
+    public GroupedHit(
+        IReadOnlyList<string> groupKey,
+        IReadOnlyList<Hit<T>> hits,
+        int found)
     {
         GroupKey = groupKey;
         Hits = hits;
+        Found = found;
     }
 }
 

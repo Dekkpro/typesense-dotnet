@@ -42,7 +42,8 @@ public class TypesenseClient : ITypesenseClient
         ArgumentNullException.ThrowIfNull(httpClient);
 
         var node = config.Value.Nodes.First();
-        httpClient.BaseAddress = new Uri($"{node.Protocol}://{node.Host}:{node.Port}");
+        UriBuilder typeSenseUriBuilder = new UriBuilder(node.Protocol, node.Host, int.Parse(node.Port), node.AdditionalPath);
+        httpClient.BaseAddress = typeSenseUriBuilder.Uri;
         httpClient.DefaultRequestHeaders.Add("X-TYPESENSE-API-KEY", config.Value.ApiKey);
         _httpClient = httpClient;
         if (config.Value.JsonSerializerOptions is not null)
@@ -66,6 +67,13 @@ public class TypesenseClient : ITypesenseClient
 
         using var jsonContent = JsonContent.Create(schema, JsonMediaTypeHeaderValue, _jsonOptionsCamelCaseIgnoreWritingNull);
         return await Post<CollectionResponse>("/collections", jsonContent, jsonSerializerOptions: null).ConfigureAwait(false);
+    }
+
+    public async Task<TruncateCollectionResponse> TruncateCollection(string collection)
+    {
+        ArgumentNullException.ThrowIfNull(collection);
+        // The filter_by is a hack because there is a bug in version v28.0 https://github.com/typesense/typesense/pull/2218
+        return await Delete<TruncateCollectionResponse>($"/collections/{collection}/documents?truncate=true&filter_by=", _jsonNameCaseInsensitiveTrue);
     }
 
     public Task<T> CreateDocument<T>(string collection, string document) where T : class
@@ -409,7 +417,7 @@ public class TypesenseClient : ITypesenseClient
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("cannot be null empty or whitespace", nameof(name));
-        
+
         // add compact_store query parameter only on false since it is true by default
         var compactStoreQuery = compactStore ? string.Empty : "?compact_store=false";
 
@@ -529,6 +537,20 @@ public class TypesenseClient : ITypesenseClient
 
         using var streamJsonLinesContent = new StreamJsonLinesHttpContent<T>(documents, _jsonOptionsCamelCaseIgnoreWritingNull);
         return await ImportDocuments(collection, streamJsonLinesContent, batchSize, importType, remoteEmbeddingBatchSize).ConfigureAwait(false);
+    }
+
+    public async Task<List<ImportResponse>> ImportDocuments(
+        string collection,
+        Stream stream,
+        int batchSize = 40,
+        ImportType importType = ImportType.Create,
+        int? remoteEmbeddingBatchSize = null,
+        bool? returnId = null)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+
+        using var streamContent = new StreamContent(stream);
+        return await ImportDocuments(collection, streamContent, batchSize, importType, remoteEmbeddingBatchSize).ConfigureAwait(false);
     }
 
     public Task<List<T>> ExportDocuments<T>(string collection, CancellationToken ctk = default)
