@@ -158,26 +158,26 @@ public record FacetCountHit
 public record FacetStats
 {
     [JsonPropertyName("avg")]
-    public float Average { get; init; }
+    public double Average { get; init; }
 
     [JsonPropertyName("max")]
-    public float Max { get; init; }
+    public double Max { get; init; }
 
     [JsonPropertyName("min")]
-    public float Min { get; init; }
+    public double Min { get; init; }
 
     [JsonPropertyName("sum")]
-    public float Sum { get; init; }
+    public double Sum { get; init; }
 
     [JsonPropertyName("total_values")]
     public int TotalValues { get; init; }
 
     [JsonConstructor]
     public FacetStats(
-        float average,
-        float max,
-        float min,
-        float sum,
+        double average,
+        double max,
+        double min,
+        double sum,
         int totalValues)
     {
         Average = average;
