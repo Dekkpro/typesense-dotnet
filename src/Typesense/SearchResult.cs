@@ -68,6 +68,9 @@ public record Hit<T>
 
     [JsonPropertyName("geo_distance_meters")]
     public IReadOnlyDictionary<string, double>? GeoDistanceMeters { get; init; }
+    
+    [JsonPropertyName("hybrid_search_info")]
+    public HybridSearchInfo? HybridSearchInfo { get; init; } 
 
     [JsonConstructor]
     public Hit(IReadOnlyList<Highlight> highlights, T document, long? textMatch, double? vectorDistance, IReadOnlyDictionary<string, double>? geoDistanceMeters)
@@ -78,6 +81,12 @@ public record Hit<T>
         VectorDistance = vectorDistance;
         GeoDistanceMeters = geoDistanceMeters;
     }
+}
+
+public record HybridSearchInfo
+{
+    [JsonPropertyName("rank_fusion_score")]
+    public double? RankFusionScore { get; set; }
 }
 
 public record TextMatchInfo
@@ -149,26 +158,26 @@ public record FacetCountHit
 public record FacetStats
 {
     [JsonPropertyName("avg")]
-    public float Average { get; init; }
+    public double Average { get; init; }
 
     [JsonPropertyName("max")]
-    public float Max { get; init; }
+    public double Max { get; init; }
 
     [JsonPropertyName("min")]
-    public float Min { get; init; }
+    public double Min { get; init; }
 
     [JsonPropertyName("sum")]
-    public float Sum { get; init; }
+    public double Sum { get; init; }
 
     [JsonPropertyName("total_values")]
     public int TotalValues { get; init; }
 
     [JsonConstructor]
     public FacetStats(
-        float average,
-        float max,
-        float min,
-        float sum,
+        double average,
+        double max,
+        double min,
+        double sum,
         int totalValues)
     {
         Average = average;
@@ -188,11 +197,18 @@ public record GroupedHit<T>
     [JsonPropertyName("hits")]
     public IReadOnlyList<Hit<T>> Hits { get; init; }
 
+    [JsonPropertyName("found")]
+    public int Found { get; init; }
+
     [JsonConstructor]
-    public GroupedHit(IReadOnlyList<string> groupKey, IReadOnlyList<Hit<T>> hits)
+    public GroupedHit(
+        IReadOnlyList<string> groupKey,
+        IReadOnlyList<Hit<T>> hits,
+        int found)
     {
         GroupKey = groupKey;
         Hits = hits;
+        Found = found;
     }
 }
 

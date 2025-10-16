@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Typesense.Converter;
 
@@ -15,7 +15,6 @@ public class UnixEpochDateTimeConverter : JsonConverter<DateTime>
     public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(writer);
-
         writer.WriteStringValue((value - DateTime.UnixEpoch).TotalSeconds.ToString(CultureInfo.InvariantCulture));
     }
 }

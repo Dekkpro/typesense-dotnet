@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using Typesense.Converter;
 
 namespace Typesense;
 
@@ -39,20 +40,28 @@ public record Include
 public record Rule
 {
     [JsonPropertyName("query")]
-    public string Query { get; init; }
+    public string? Query { get; init; }
 
     [JsonPropertyName("match")]
-    public string Match { get; init; }
+    public string? Match { get; init; }
+
+    [JsonPropertyName("filter_by")]
+    public string? FilterBy { get; init; }
+
+    [JsonPropertyName("tags")]
+    public IEnumerable<string>? Tags { get; init; }
 
     [JsonConstructor]
-    public Rule(string query, string match)
+    public Rule(
+        string? query = null,
+        string? match = null,
+        string? filterBy = null,
+        IEnumerable<string>? tags = null)
     {
-        if (string.IsNullOrWhiteSpace(query))
-            throw new ArgumentException("cannot be null or whitespace.", nameof(query));
-        if (string.IsNullOrWhiteSpace(match))
-            throw new ArgumentException("cannot be null or whitespace.", nameof(match));
         Match = match;
         Query = query;
+        FilterBy = filterBy;
+        Tags = tags;
     }
 }
 
@@ -63,6 +72,47 @@ public record SearchOverride
 
     [JsonPropertyName("includes")]
     public IEnumerable<Include>? Includes { get; init; }
+
+    /// <summary>
+    /// Custom metadata for the search override.
+    /// </summary>
+    /// <remarks>
+    /// Example metadata JSON:
+    /// <code>
+    /// {
+    ///   "metadata": {
+    ///     "createdBy": "admin",
+    ///     "tags": ["featured", "promotion"]
+    ///   }
+    /// }
+    /// </code>
+    /// </remarks>
+    [JsonPropertyName("metadata")]
+    public IDictionary<string, object>? Metadata { get; init; }
+
+    [JsonPropertyName("filter_by")]
+    public string? FilterBy { get; init; }
+
+    [JsonPropertyName("sort_by")]
+    public string? SortBy { get; init; }
+
+    [JsonPropertyName("replace_query")]
+    public string? ReplaceQuery { get; init; }
+
+    [JsonPropertyName("remove_matched_tokens")]
+    public bool? RemoveMatchedTokens { get; init; }
+
+    [JsonPropertyName("filter_curated_hits")]
+    public bool? FilterCuratedHits { get; init; }
+
+    [JsonPropertyName("stop_processing")]
+    public bool? StopProcessing { get; init; }
+
+    [JsonPropertyName("effective_from_ts"), JsonConverter(typeof(UnixEpochDateTimeLongConverter))]
+    public DateTime? EffectiveFromTs { get; init; }
+
+    [JsonPropertyName("effective_to_ts"), JsonConverter(typeof(UnixEpochDateTimeLongConverter))]
+    public DateTime? EffectiveToTs { get; init; }
 
     [JsonPropertyName("rule")]
     public Rule Rule { get; init; }
