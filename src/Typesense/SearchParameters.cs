@@ -494,13 +494,26 @@ public record SearchParameters
 
     /// <summary>
     /// Dictates the direction in which the words in the query must be dropped when the original words in the query do not appear in any document.
-    /// 
-    /// Values: right_to_left (default), left_to_right, both_sides:3 
-    /// A note on both_sides:3 - for queries upto 3 tokens (words) in length, this mode will drop tokens from both sides and exhaustively rank all matching results. 
+    ///
+    /// Values: right_to_left (default), left_to_right, both_sides:3
+    /// A note on both_sides:3 - for queries upto 3 tokens (words) in length, this mode will drop tokens from both sides and exhaustively rank all matching results.
     /// If query length is greater than 3 words, Typesense will just fallback to default behavior of right_to_left
     /// </summary>
     [JsonPropertyName("drop_tokens_mode")]
     public string? DropTokensMode { get; set; }
+
+    /// <summary>
+    /// Controls the strategy used to match tokens in the query against tokens in the document.
+    ///
+    /// Values: "all" (require every token to match, disables token dropping fallback),
+    ///         "frequency" (default; drops tokens with lowest frequency first when not enough results),
+    ///         "default" (alias of frequency on newer Typesense versions).
+    ///
+    /// Use "all" to prevent Typesense from silently dropping tokens to broaden results — required when
+    /// the query mixes structured tokens (e.g. tire dimension + brand) and noise must not bleed in.
+    /// </summary>
+    [JsonPropertyName("matching_strategy")]
+    public string? MatchingStrategy { get; set; }
 
     /// <summary>
     /// Set this parameter to false to disable typos on numerical query tokens. Default: true
