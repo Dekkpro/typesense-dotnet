@@ -25,6 +25,7 @@ var provider = new ServiceCollection()
     .AddTypesenseClient(config =>
     {
         config.ApiKey = "mysecretapikey";
+        config.SearchApiKey = "mysearchonlyapikey"; // optional
         config.Nodes = new List<Node>
         {
             new Node("localhost", "8108", "http")
@@ -141,7 +142,7 @@ var response = await _client.MultiSearch<Company>(queryOne);
 ```
 
 
-Example of using a two queries in multi-search.
+Example of using two queries in multi-search.
 
 ```c#
 var queryOne = new MultiSearchParameters("companies", "Stark", "company_name");
@@ -159,6 +160,18 @@ var queryThree = new MultiSearchParameters("companies", "Awesome Corp.", "compan
 
 var (r1, r2, r3) = await _client.MultiSearch<Company, Employee, Company>(queryOne, queryTwo, queryThree);
 ```
+
+## Search with Scoped Search key
+
+```c#
+var searchResults = await _client
+    .WithSearchScope(new ScopedSearchParameters { CacheTtl = 10 })
+    .MultiSearch<object>(searchParameters);
+```
+
+> **Note** To use the `WithSearchScope` method, the `SearchApiKey` property in the `Config` object must be set. The key **must only have the `documents:search` permission** and no other permissions.
+
+> **Note:** The `cache_ttl` parameter can only be set and enforced via a scoped search key. If passed directly in search parameters, its value will be ignored and the default of `60` (seconds) will be used instead.
 
 ## Vector search
 
