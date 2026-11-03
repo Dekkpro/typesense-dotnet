@@ -9,6 +9,20 @@ namespace Typesense;
 public interface ITypesenseClient
 {
     /// <summary>
+    /// Creates a new <see cref="ITypesenseClient"/> instance that uses a scoped
+    /// search key derived from the scoped search parameters and the search API key.
+    /// The original client instance is not modified.
+    /// Precondition: <c>SearchApiKey</c> must be set in <c>Config</c> and must 
+    /// have no other permissions besides <c>documents:search</c>.
+    /// Note: Parameters embedded in the scoped search parameters will be automatically applied by Typesense and users will not be able to override them.
+    /// </summary>
+    /// <param name="scopedSearchParameters">The scoped search parameters object.</param>
+    /// <returns>A new <see cref="ITypesenseClient"/> configured with the scoped search key.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when <c>SearchApiKey</c> is not set in <c>Config</c> or does not meet permission requirements.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="scopedSearchParameters"/> is null.</exception>
+    ITypesenseClient WithSearchScope(ScopedSearchParameters scopedSearchParameters);
+
+    /// <summary>
     /// Creates the collection with the supplied schema
     /// </summary>
     /// <param name="schema">The schema for the collection be created.</param>
@@ -23,7 +37,7 @@ public interface ITypesenseClient
     Task<CollectionResponse> CreateCollection(Schema schema);
 
     /// <summary>
-    /// Rmove all documents from a collection but keeps the collection and schema intact.
+    /// Remove all documents from a collection but keeps the collection and schema intact.
     /// </summary>
     /// <param name="collection">The name of the collection to truncate.</param>
     /// <returns>The response object includes the number of documents that were deleted. For an empty collection, this value will be 0.</returns>
@@ -37,7 +51,7 @@ public interface ITypesenseClient
     Task<TruncateCollectionResponse> TruncateCollection(string collection);
 
     /// <summary>
-    /// Creates the document in the speicfied collection.
+    /// Creates the document in the specified collection.
     /// </summary>
     /// <param name="collection">The collection name.</param>
     /// <param name="document">The document to be inserted. The document should be in JSON format.</param>
@@ -53,7 +67,7 @@ public interface ITypesenseClient
     Task<T> CreateDocument<T>(string collection, string document) where T : class;
 
     /// <summary>
-    /// Creates the document in the speicfied collection.
+    /// Creates the document in the specified collection.
     /// </summary>
     /// <param name="collection">The collection name.</param>
     /// <param name="document">The document to be inserted.</param>
@@ -69,7 +83,7 @@ public interface ITypesenseClient
     Task<T> CreateDocument<T>(string collection, T document) where T : class;
 
     /// <summary>
-    /// Inserts the document if it does not exist or update if the document exist.
+    /// Inserts the document if it does not exist or update if the document exists.
     /// </summary>
     /// <param name="collection">The collection name.</param>
     /// <param name="document">The document to be inserted. The document should be in JSON format.</param>
@@ -85,7 +99,7 @@ public interface ITypesenseClient
     Task<T> UpsertDocument<T>(string collection, string document) where T : class;
 
     /// <summary>
-    /// Inserts the document if it does not exist or update if the document exist.
+    /// Inserts the document if it does not exist or update if the document exists.
     /// </summary>
     /// <param name="collection">The collection name.</param>
     /// <param name="document">The document to be upserted.</param>
@@ -129,6 +143,23 @@ public interface ITypesenseClient
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
     /// <returns>The search result.</returns>
     Task<SearchGroupedResult<T>> SearchGrouped<T>(string collection, GroupedSearchParameters groupedSearchParameters, CancellationToken ctk = default);
+
+    /// <summary>
+    /// The search results returned by each of the search queries in a multi_search
+    /// request can be merged into a single ordered set of hits via the union option.
+    /// </summary>
+    /// <param name="s1">First collection of multi-search parameters.</param>
+    /// <param name="limitMultiSearches">Max number of search requests that can be sent in a multi-search request. Eg: 20. Default is 50.</param>
+    /// <param name="page">The page to retrieve. Default is 1.</param>
+    /// <param name="perPage">Number of results to return per page. Default is 10.</param>
+    /// <param name="ctk">The optional cancellation token.</param>
+    /// <returns>The search results.</returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="TypesenseApiException"></exception>
+    /// <exception cref="TypesenseApiBadRequestException"></exception>
+    /// <exception cref="TypesenseApiNotFoundException"></exception>
+    /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
+    Task<UnionSearchResult<T1>> UnionSearch<T1>(ICollection<MultiSearchParameters> s1, int? limitMultiSearches = null, int? page = null, int? perPage = null, CancellationToken ctk = default);
 
     /// <summary>
     /// Multiple Searches for documents in the specified collections using the supplied search parameters.
@@ -393,7 +424,7 @@ public interface ITypesenseClient
     /// </summary>
     /// <param name="collection">The collection name.</param>
     /// <param name="filter">The filter that is used to selected which documents that should be deleted.</param>
-    /// <param name="batchSize">The number of documents that should deleted at a time.</param>
+    /// <param name="batchSize">The number of documents that should be deleted at a time.</param>
     /// <returns>A response containing a count of the deleted documents.</returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="TypesenseApiException"></exception>
@@ -444,7 +475,7 @@ public interface ITypesenseClient
     /// <exception cref="TypesenseApiNotFoundException"></exception>
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
     Task<FilterUpdateResponse> UpdateDocuments<T>(string collection, T document, string filter, bool fullUpdate = false);
-    
+
     /// <summary>
     /// Batch import documents.
     /// </summary>
@@ -457,7 +488,7 @@ public interface ITypesenseClient
     /// Using lower amount will lower timeout risk, but increase number of requests made.
     /// If not specified, typesense server will default to 200.
     /// </param>
-    /// <param name="returnId">Eanble to return the id fo the document in the response.</param>
+    /// <param name="returnId">Enable to return the id of the document in the response.</param>
     /// <returns>A collection of import responses.</returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
@@ -487,7 +518,7 @@ public interface ITypesenseClient
     /// Using lower amount will lower timeout risk, but increase number of requests made.
     /// If not specified, typesense server will default to 200.
     /// </param>
-    /// <param name="returnId">Eanble to return the id fo the document in the response.</param>
+    /// <param name="returnId">Enable to return the id of the document in the response.</param>
     /// <returns>A collection of import responses.</returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
@@ -517,7 +548,7 @@ public interface ITypesenseClient
     /// Using lower amount will lower timeout risk, but increase number of requests made.
     /// If not specified, typesense server will default to 200.
     /// </param>
-    /// <param name="returnId">Eanble to return the id fo the document in the response.</param>
+    /// <param name="returnId">Enable to return the id of the document in the response.</param>
     /// <returns>A collection of import responses.</returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
@@ -547,7 +578,7 @@ public interface ITypesenseClient
     /// Using lower amount will lower timeout risk, but increase number of requests made.
     /// If not specified, typesense server will default to 200.
     /// </param>
-    /// <param name="returnId">Eanble to return the id fo the document in the response.</param>
+    /// <param name="returnId">Enable to return the id of the document in the response.</param>
     /// <returns>A collection of import responses.</returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
@@ -594,6 +625,21 @@ public interface ITypesenseClient
     Task<List<T>> ExportDocuments<T>(string collection, ExportParameters exportParameters, CancellationToken ctk = default);
 
     /// <summary>
+    /// Export all documents in a given collection as a stream.
+    /// </summary>
+    /// <param name="collection">The collection name.</param>
+    /// <param name="exportParameters">Extra query parameters for exporting documents.</param>
+    /// <param name="ctk">The optional cancellation token.</param>
+    /// <returns>A stream of documents.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="TypesenseApiException"></exception>
+    /// <exception cref="TypesenseApiBadRequestException"></exception>
+    /// <exception cref="TypesenseApiNotFoundException"></exception>
+    /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
+    IAsyncEnumerable<T> ExportDocumentsAsStream<T>(string collection, ExportParameters exportParameters, CancellationToken ctk = default);
+
+    /// <summary>
     /// Creates an api key.
     /// </summary>
     /// <param name="key">Key to be inserted.</param>
@@ -610,7 +656,7 @@ public interface ITypesenseClient
     /// <summary>
     /// Retrieve a key
     /// </summary>
-    /// <param name="id">Id of key to be retrived</param>
+    /// <param name="id">Id of key to be retrieved</param>
     /// <param name="ctk">The optional cancellation token.</param>
     /// <returns>A single key.</returns>
     /// <exception cref="TypesenseApiException"></exception>
@@ -659,12 +705,12 @@ public interface ITypesenseClient
     string GenerateScopedSearchKey(string securityKey, string parameters);
 
     /// <summary>
-    /// Upsert search override.
+    /// Upsert curation set (global curation set feature).
     /// </summary>
-    /// <param name="collection">The collection name.</param>
-    /// <param name="overrideName">The name of the search override.</param>
-    /// <param name="searchOverride">The specificiation for the search override.</param>
-    /// <returns>The upserted search override.</returns>
+    /// <param name="curationSetName">The name of the curation set.</param>
+    /// <param name="schema">The curation set schema.</param>
+    /// <returns>The created curation set.</returns>
+    /// <exception cref="ArgumentException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="TypesenseApiException"></exception>
     /// <exception cref="TypesenseApiBadRequestException"></exception>
@@ -672,48 +718,44 @@ public interface ITypesenseClient
     /// <exception cref="TypesenseApiConflictException"></exception>
     /// <exception cref="TypesenseApiUnprocessableEntityException"></exception>
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
-    Task<SearchOverrideResponse> UpsertSearchOverride(string collection, string overrideName, SearchOverride searchOverride);
+    Task<CurationSetSchemaResponse> UpsertCurationSet(string curationSetName, CurationSetSchema schema);
 
     /// <summary>
-    /// Listing all search overrides associated with a given collection.
+    /// Retrieve global curation set by name.
     /// </summary>
-    /// <param name="collection">The collection name.</param>
+    /// <param name="curationSetName">The name of the curation set.</param>
     /// <param name="ctk">The optional cancellation token.</param>
-    /// <returns>List of search overrides.</returns>
+    /// <returns>Curation set with the specified name.</returns>
     /// <exception cref="ArgumentException"></exception>
-    /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="TypesenseApiException"></exception>
     /// <exception cref="TypesenseApiBadRequestException"></exception>
     /// <exception cref="TypesenseApiNotFoundException"></exception>
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
-    Task<ListSearchOverridesResponse> ListSearchOverrides(string collection, CancellationToken ctk = default);
+    Task<CurationSetSchemaResponse> RetrieveCurationSet(string curationSetName, CancellationToken ctk = default);
 
     /// <summary>
-    /// Fetch an individual override associated with a collection.
+    /// List all global curation sets.
     /// </summary>
-    /// <param name="collection">The collection name.</param>
-    /// <param name="overrideName">The override name that should be retrieved.</param>
     /// <param name="ctk">The optional cancellation token.</param>
-    /// <returns>The search override.</returns>
+    /// <returns>All global curation sets.</returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="TypesenseApiException"></exception>
     /// <exception cref="TypesenseApiBadRequestException"></exception>
     /// <exception cref="TypesenseApiNotFoundException"></exception>
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
-    Task<SearchOverrideResponse> RetrieveSearchOverride(string collection, string overrideName, CancellationToken ctk = default);
+    Task<ListCurationSetsResponse> ListCurationSets(CancellationToken ctk = default);
 
     /// <summary>
-    /// Deleting an override associated with a collection.
+    /// Delete a global curation set.
     /// </summary>
-    /// <param name="collection">The collection name.</param>
-    /// <param name="overrideName">The override name that should be deleted.</param>
-    /// <returns>The deleted search override.</returns>
+    /// <param name="curationSetName">Curation set name.</param>
+    /// <returns>Name of the deleted curation set.</returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="TypesenseApiException"></exception>
     /// <exception cref="TypesenseApiBadRequestException"></exception>
     /// <exception cref="TypesenseApiNotFoundException"></exception>
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
-    Task<DeleteSearchOverrideResponse> DeleteSearchOverride(string collection, string overrideName);
+    Task<DeleteCurationSetResponse> DeleteCurationSet(string curationSetName);
 
     /// <summary>
     /// Upsert collection alias.
@@ -768,12 +810,11 @@ public interface ITypesenseClient
     Task<CollectionAliasResponse> DeleteCollectionAlias(string aliasName);
 
     /// <summary>
-    /// Upsert synonym.
+    /// Upsert synonym set (global synonym set feature).
     /// </summary>
-    /// <param name="collection">Collection to insert the synonym into.</param>
-    /// <param name="synonym">The name of the synonym.</param>
-    /// <param name="schema">The synonym schema.</param>
-    /// <returns>The created synonym.</returns>
+    /// <param name="synonymSetName">The name of the synonym set.</param>
+    /// <param name="schema">The synonym set schema.</param>
+    /// <returns>The created synonym set.</returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="TypesenseApiException"></exception>
@@ -782,47 +823,44 @@ public interface ITypesenseClient
     /// <exception cref="TypesenseApiConflictException"></exception>
     /// <exception cref="TypesenseApiUnprocessableEntityException"></exception>
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
-    Task<SynonymSchemaResponse> UpsertSynonym(string collection, string synonym, SynonymSchema schema);
+    Task<SynonymSetSchemaResponse> UpsertSynonymSet(string synonymSetName, SynonymSetSchema schema);
 
     /// <summary>
-    /// Retrieve synonym in collection on synonym name.
+    /// Retrieve global synonym set by name.
     /// </summary>
-    /// <param name="collection">The synonym collection name.</param>
-    /// <param name="synonym">The name of the synonym.</param>
+    /// <param name="synonymSetName">The name of the synonym set.</param>
     /// <param name="ctk">The optional cancellation token.</param>
-    /// <returns>Synonym on name associated with the collection.</returns>
+    /// <returns>Synonym set with the specified name.</returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="TypesenseApiException"></exception>
     /// <exception cref="TypesenseApiBadRequestException"></exception>
     /// <exception cref="TypesenseApiNotFoundException"></exception>
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
-    Task<SynonymSchemaResponse> RetrieveSynonym(string collection, string synonym, CancellationToken ctk = default);
+    Task<SynonymSetSchemaResponse> RetrieveSynonymSet(string synonymSetName, CancellationToken ctk = default);
 
     /// <summary>
-    /// List all synonyms associated with a given collection.
+    /// List all global synonym sets.
     /// </summary>
-    /// <param name="collection">Collection name.</param>
     /// <param name="ctk">The optional cancellation token.</param>
-    /// <returns>All synonyms associated with the collection.</returns>
+    /// <returns>All global synonym sets.</returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="TypesenseApiException"></exception>
     /// <exception cref="TypesenseApiBadRequestException"></exception>
     /// <exception cref="TypesenseApiNotFoundException"></exception>
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
-    Task<ListSynonymsResponse> ListSynonyms(string collection, CancellationToken ctk = default);
+    Task<ListSynonymSetsResponse> ListSynonymSets(CancellationToken ctk = default);
 
     /// <summary>
-    /// Delete a synonym associated with a collection.
+    /// Delete a global synonym set.
     /// </summary>
-    /// <param name="collection">Collection name.</param>
-    /// <param name="synonym">Synonym name.</param>
-    /// <returns>Id of the deleted synonym.</returns>
+    /// <param name="synonymSetName">Synonym set name.</param>
+    /// <returns>Id of the deleted synonym set.</returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="TypesenseApiException"></exception>
     /// <exception cref="TypesenseApiBadRequestException"></exception>
     /// <exception cref="TypesenseApiNotFoundException"></exception>
     /// <exception cref="TypesenseApiServiceUnavailableException"></exception>
-    Task<DeleteSynonymResponse> DeleteSynonym(string collection, string synonym);
+    Task<DeleteSynonymSetResponse> DeleteSynonymSet(string synonymSetName);
 
     /// <summary>
     /// Get current RAM, CPU, Disk and Network usage metrics.

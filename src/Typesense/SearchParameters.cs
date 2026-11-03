@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using Typesense.Converter;
 
@@ -30,20 +32,13 @@ public record MultiSearchParameters : SearchParameters
     public VectorQuery? VectorQuery { get; init; }
 
     [JsonPropertyName("group_by")]
-    public string GroupBy { get; set; }
+    public string? GroupBy { get; set; }
 
     [JsonPropertyName("group_limit")]
     public int? GroupLimit { get; set; }
 
     [JsonPropertyName("group_missing_values")]
     public bool? GroupMissingValues { get; set; }
-
-    /// <summary>
-    /// Set this parameter to the value of a preset that has been created in typesense.
-    /// The query parameters of the preset will then be used in your search.
-    /// </summary>
-    [JsonPropertyName("preset")]
-    public string? Preset { get; set; }
 
     public MultiSearchParameters(string collection, string text) : base(text)
     {
@@ -54,6 +49,42 @@ public record MultiSearchParameters : SearchParameters
     {
         Collection = collection;
     }
+}
+
+public record MultiSearchQueryParameters
+{
+    /// <summary>
+    /// Limits the number of individual searches from a multi-search request
+    /// that are considered when generating the unified result set.
+    /// This can be used to control performance when many searches are included.
+    /// </summary>
+    [JsonPropertyName("limit_multi_searches")]
+    public int? LimitMultiSearches { get; init; }
+
+    /// <summary>
+    /// Enable server side caching of search query results. By default, caching is disabled.
+    /// Default: false
+    /// </summary>
+    [JsonPropertyName("use_cache")]
+    public bool? UseCache { get; init; }
+
+    /// <summary>
+    /// Results from this specific page number would be fetched.
+    /// </summary>
+    [JsonPropertyName("page")]
+    public int? Page { get; init; }
+
+    /// <summary>
+    /// Number of results to fetch per page. Default: 10
+    /// </summary>
+    [JsonPropertyName("per_page")]
+    public int? PerPage { get; init; }
+
+    public MultiSearchQueryParameters(ICollection<MultiSearchParameters> searches) =>
+        UseCache = searches.Select(s => s.UseCache).FirstOrDefault(v => v.HasValue);
+
+    public MultiSearchQueryParameters(params MultiSearchParameters[] searches)
+        : this((ICollection<MultiSearchParameters>)searches) { }
 }
 
 public record SearchParameters
@@ -243,10 +274,10 @@ public record SearchParameters
     public bool? EnableOverrides { get; set; }
 
     /// <summary>
-    /// You can trigger particular override rules that you've tagged using their tag name(s) in this search parameter.
+    /// You can trigger particular curations that you've tagged using their tag name(s) in this search parameter.
     /// </summary>
-    [JsonPropertyName("override_tags")]
-    public string? OverrideTags { get; set; }
+    [JsonPropertyName("curation_tags")]
+    public string? CurationTags { get; set; }
 
     /// <summary>
     /// If you have some synonyms defined but want to disable all of them for a particular search query, set enable_synonyms to false.
@@ -378,9 +409,9 @@ public record SearchParameters
     public string? HighlightFullFields { get; set; }
 
     /// <summary>
-    /// Comma separated list of fields that should be highlighted with snippetting.
+    /// Comma separated list of fields that should be highlighted with snippeting.
     /// Default: all queried fields will be highlighted.
-    /// Set to none to disable snippetting fully.
+    /// Set to none to disable snippeting fully.
     /// </summary>
     [JsonPropertyName("highlight_fields")]
     public string? HighlightFields { get; set; }
@@ -558,7 +589,7 @@ public record SearchParameters
     /// </summary>
     [JsonPropertyName("remote_embedding_timeout_ms")]
     public int? RemoteEmbeddingTimeoutMs { get; set; }
-    
+
     /// <summary>
     /// When set to true, enables both text match and vector distance scores to be computed for all hybrid search results,
     /// improving the ranking by combining both score types for documents found only by keyword or vector search
@@ -572,6 +603,12 @@ public record SearchParameters
     /// </summary>
     [JsonPropertyName("remote_embedding_num_tries")]
     public int? RemoteEmbeddingNumTries { get; set; }
+
+    /// <summary>
+    /// When set to false, it will ignore any analytics rules
+    /// </summary>
+    [JsonPropertyName("enable_analytics")]
+    public bool? EnableAnalytics { get; set; }
 
     [Obsolete("Use multi-arity constructor instead.")]
     public SearchParameters()
@@ -628,5 +665,46 @@ public record GroupedSearchParameters : SearchParameters
         string groupBy) : base(text, queryBy)
     {
         GroupBy = groupBy;
+    }
+}
+
+/// <summary>
+/// Parameters used for performing a Union search,
+/// where results from multiple searches are combined into a single
+/// unified result set and then paginated.
+/// See: https://typesense.org/docs/30.1/api/federated-multi-search.html#union-search
+/// </summary>
+public record UnionSearchParameters
+{
+    /// <summary>
+    /// Limits the number of individual searches from a multi-search request
+    /// that are considered when generating the unified result set.
+    /// This can be used to control performance when many searches are included.
+    /// </summary>
+    [JsonPropertyName("limit_multi_searches")]
+    public int? LimitMultiSearches { get; init; }
+
+    /// <summary>
+    /// Page number of the merged (unioned) result set to return.
+    /// Pagination is applied after results from all searches are combined.
+    /// </summary>
+    [JsonPropertyName("page")]
+    public int? Page { get; init; }
+
+    /// <summary>
+    /// Number of results to return per page from the unified result set.
+    /// Pagination is applied after merging results from all searches.
+    /// </summary>
+    [JsonPropertyName("per_page")]
+    public int? PerPage { get; init; }
+
+    public UnionSearchParameters(
+        int? limitMultiSearches = null,
+        int? page = null,
+        int? perPage = null)
+    {
+        LimitMultiSearches = limitMultiSearches;
+        Page = page;
+        PerPage = perPage;
     }
 }
